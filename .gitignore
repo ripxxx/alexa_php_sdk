@@ -1,0 +1,4 @@
+# project specific files and directories
+.idea
+
+base/config/main.php

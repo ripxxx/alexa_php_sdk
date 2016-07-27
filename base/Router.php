@@ -1,6 +1,7 @@
 <?php
 
 class Router {
+    
     protected $_config;
     
     protected function notFound() {
@@ -9,13 +10,14 @@ class Router {
     }
     
     protected function skillExists($skillName) {
-        $skillDir = $this->_config['directories']['skills'].$skillName;
+        if ($skillName == '') return false;
+        $skillDir = $this->_config['directories']['skills'].$skillName;        
         return (file_exists($skillDir) && is_dir($skillDir));
     }
     
     protected function getSkillConfig($skillName) {
         if($this->skillExists($skillName)) {
-            $skillConfigFileName = $this->_config['directories']['skills'].$skillName.'/config.php';
+            $skillConfigFileName = $this->_config['directories']['skills'].$skillName.'/config.php';        
             if(file_exists($skillConfigFileName)) {
                 return require($skillConfigFileName);
             }
@@ -49,16 +51,18 @@ class Router {
         $this->_config = $config;
     }
     
-    public function route($path) {
-        if($path) {
-            $postData = file_get_contents("php://input");
+    public function route($path) {        
+        if($path) {            
+            $postData = file_get_contents("php://input");            
 
-            $pathParts = explode('/', $path);
+            $pathParts = explode('/', $path);            
+
+            array_shift($pathParts); // remove first slash
 
             $skillName = array_shift($pathParts);
-            $skillParams = $pathParts;
+            $skillParams = $pathParts;            
             
-            if($this->skillExists($skillName)) {
+            if($this->skillExists($skillName)) {                
                 $config = $this->getSkillConfig($skillName);
                 Skill::getInstance($skillName, array_merge_recursive($this->_config, $config));
                 if(strlen($postData) > 1) {
