@@ -20,6 +20,13 @@ vi|nano|notepad alexa_php_sdk-master/base/config/main.php
 # edit path for skills and users (should point on created above directories)
 ```
 
+Now you can start local php if you don't have installed apache.
+in alexa_php_sdk directory run:
+
+```
+php -d always_populate_raw_post_data=-1 -S localhost:8000 index.php
+```
+
 1. Open list of skills:
 https://developer.amazon.com/edw/home.html#/skills/list
 
