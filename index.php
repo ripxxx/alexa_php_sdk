@@ -5,7 +5,9 @@ $mainConfig = require('./base/config/main.php');
 
 $router = new Router($mainConfig);
 
-$path = $_SERVER['REQUEST_URI']; 
-// $path = filter_input(INPUT_GET, 'path') ;
+$path = filter_input(INPUT_GET, 'path') ;
+if(empty($path)) {
+  $path = $_SERVER['REQUEST_URI'];  
+}
 
 $router->route($path);

@@ -55,13 +55,13 @@ class Router {
         if($path) {            
             $postData = file_get_contents("php://input");            
 
-            $pathParts = explode('/', $path);            
+            $pathParts = explode('/', ltrim($path, '\\/'));            
 
-            array_shift($pathParts); // remove first slash
+            //array_shift($pathParts); // remove first slash
 
             $skillName = array_shift($pathParts);
             $skillParams = $pathParts;            
-            
+
             if($this->skillExists($skillName)) {                
                 $config = $this->getSkillConfig($skillName);
                 Skill::getInstance($skillName, array_merge_recursive($this->_config, $config));
