@@ -15,7 +15,7 @@ class User implements ArrayAccess, Countable {
         $this->currentApplicationId = $applicationId;
         $this->currentSessionId = $sessionId;
         $this->id = $id;
-        $this->hash = md5($applicationId.$id.'com.alexa.sdk');
+        $this->hash = md5($id.$applicationId.'com.alexa.sdk');
         $this->path = $path;
         
         $this->fileName = $this->path.$this->hash;
