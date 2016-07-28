@@ -9,6 +9,20 @@ class Router {
         echo 'Not found.';
     }
     
+    protected function readFile($filePath) {
+        if(file_exists($filePath) && is_file($filePath) && is_writable($filePath)) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $contentType = finfo_file($finfo, $filePath);
+            finfo_close($finfo);
+            header("Content-Type: ".$contentType);
+            readfile($filePath);
+            return true;
+        }
+        $this->notFound();
+        return false;
+    }
+
+
     protected function skillExists($skillName) {
         if ($skillName == '') return false;
         $skillDir = $this->_config['directories']['skills'].$skillName;        
@@ -117,13 +131,8 @@ class Router {
                 else if(isset($skillParams[0])) {
                     if(isset($config['allowedContentTypes'])) {
                         if(preg_match("/.+?\\.(".$config['allowedContentTypes'].")/", $skillParams[0])) {
-                            $fileName = $config['directories']['content'].'/'.$skillParams[0];
-                            if(file_exists($fileName) && is_file($fileName) && is_writable($fileName)) {
-                                readfile($fileName);
-                                return true;
-                            }
-                            $this->notFound();
-                            return false;
+                            $filePath = $config['directories']['content'].'/'.$skillParams[0];
+                            return $this->readFile($filePath);
                         }
                     }
                 }
