@@ -15,6 +15,7 @@ class Router {
             $contentType = finfo_file($finfo, $filePath);
             finfo_close($finfo);
             header("Content-Type: ".$contentType);
+            header('Access-Control-Allow-Origin: http://ask-ifr-download.s3.amazonaws.com');
             readfile($filePath);
             return true;
         }
