@@ -123,6 +123,19 @@ class Router {
                             }
                         }
                         else if(strtolower($parsedPostData['request']['type']) == 'SessionEndedRequest') {
+                            $intentName = 'EndSession';
+                            $intent = $this->getSkillIntent($skillName, $intentName, $user);
+                            if($intent) {
+                                $response = $intent->run($params);
+                                if(!$response) {
+                                    $response = $intent->endSessionResponse();
+                                }
+
+                                echo $response->build();
+                            }
+                            else {
+                                //add default intent
+                            }
                             //log
                         }
                     }
