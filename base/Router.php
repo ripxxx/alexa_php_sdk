@@ -56,8 +56,10 @@ class Router {
         $id = $data['user']['userId'];
         $sessionId = $data['sessionId'];
         $user = User::getInstance($id, $this->_config['directories']['users'], $applicationId, $sessionId, $private);
-        foreach($data['attributes'] as $key=>$value) {
-            $user[$key] = $value;
+        if(isset($data['attributes'])) {
+            foreach($data['attributes'] as $key=>$value) {
+                $user[$key] = $value;
+            }
         }
         return $user;
     }
