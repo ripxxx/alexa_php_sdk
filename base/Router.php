@@ -56,7 +56,7 @@ class Router {
         $id = $data['user']['userId'];
         $sessionId = $data['sessionId'];
         $user = User::getInstance($id, $this->_config['directories']['users'], $applicationId, $sessionId, $private);
-        if(isset($data['attributes'])) {
+        if(isset($data['attributes']) && is_array($data['attributes'])) {
             foreach($data['attributes'] as $key=>$value) {
                 $user[$key] = $value;
             }
@@ -90,7 +90,7 @@ class Router {
                             $intentName = 'Launch';
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
-                                $response = $intent->run($params);
+                                $response = $intent->run();
                                 if(!$response) {
                                     $response = $intent->endSessionResponse();
                                 }
@@ -129,7 +129,7 @@ class Router {
                             $intentName = 'EndSession';
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
-                                $response = $intent->run($params);
+                                $response = $intent->run();
                                 if(!$response) {
                                     $response = $intent->endSessionResponse();
                                 }
