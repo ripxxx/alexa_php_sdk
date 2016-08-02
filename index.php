@@ -1,4 +1,10 @@
 <?php
+/**
+ * Created by Aleksandr Berdnikov.
+ * Copyright 2016 Onix-Systems.
+*/
+
+namespace AlexaPHPSDK;
 
 require './base/config/autoload.php';
 $mainConfig = require('./base/config/main.php');

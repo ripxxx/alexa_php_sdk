@@ -1,5 +1,10 @@
 <?php
 
+namespace SKILL_NAMESPACE;
+
+use AlexaPHPSDK\Intent;
+use AlexaPHPSDK\Response;
+
 //SLOTS
 
 class INTENT_NAME extends Intent {

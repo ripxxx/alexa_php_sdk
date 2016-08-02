@@ -1,5 +1,10 @@
 <?php
 
+namespace SKILL_NAMESPACE;
+
+use AlexaPHPSDK\LaunchRequest;
+use AlexaPHPSDK\Response;
+
 class Launch extends LaunchRequest {
     
     public function run($params = array()) {

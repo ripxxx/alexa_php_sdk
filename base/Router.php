@@ -1,4 +1,10 @@
 <?php
+/**
+ * Created by Aleksandr Berdnikov.
+ * Copyright 2016 Onix-Systems.
+*/
+
+namespace AlexaPHPSDK;
 
 class Router {
     
@@ -44,19 +50,38 @@ class Router {
         if($this->skillExists($skillName)) {
             $intentClassFileName = $this->_config['directories']['skills'].$skillName.'/'.$intentName.'.php';
             if(file_exists($intentClassFileName)) {
+                spl_autoload_register(function($class) {
+                    $skillName = Skill::getInstance()->name;
+                    $prefix = ucfirst($skillName);
+                    
+                    $baseDirectory = $this->_config['directories']['skills'].$skillName;
+                    
+                    $length = strlen($prefix);
+                    if(strncmp($prefix, $class, $length) !== 0) {
+                        return;
+                    }
+
+                    $realativeClass = substr($class, $length);
+                    $filePath = $baseDirectory.str_replace('\\', '/', $realativeClass).'.php';
+
+                    if (file_exists($filePath)) {
+                        require $filePath;
+                    }
+                });
                 require_once($intentClassFileName);
-                return new $intentName($user);
+                $classFullName = $skillName.'\\'.$intentName;
+                return new $classFullName($user);
             }
             return NULL;
         }
     }
     
-    protected function createUser($data, $private = true) {
+    protected function createUser($data) {
         $applicationId = $data['application']['applicationId'];
         $id = $data['user']['userId'];
         $sessionId = $data['sessionId'];
-        $user = User::getInstance($id, $this->_config['directories']['users'], $applicationId, $sessionId, $private);
-        if(isset($data['attributes']) && is_array($data['attributes'])) {
+        $user = User::getInstance($id, $this->_config['directories']['users'], $applicationId, $sessionId);
+        if(isset($data['attributes']) && is_array($data['attributes']) && (count($data['attributes']) > 0)) {
             foreach($data['attributes'] as $key=>$value) {
                 $user[$key] = $value;
             }
@@ -69,39 +94,48 @@ class Router {
     }
     
     public function route($path) {        
-        if($path) {            
-            $postData = file_get_contents("php://input");            
+        if($path) {    
+            $postData = file_get_contents("php://input");
+            $parsedPostData = NULL;
+            $user = NULL;
+            if(strlen($postData) > 1) {
+                $parsedPostData = ((strlen($postData) > 1)? json_decode($postData, true): array());
+                $user = $this->createUser($parsedPostData['session']);
+            }
 
-            $pathParts = explode('/', ltrim($path, '\\/'));            
-
-            //array_shift($pathParts); // remove first slash
+            $pathParts = explode('/', ltrim($path, '\\/'));
 
             $skillName = array_shift($pathParts);
             $skillParams = $pathParts;            
 
-            if($this->skillExists($skillName)) {                
+            $defaultSkill = NULL;
+            !is_null($user) && $defaultSkill = new DefaultIntent($user);
+            
+            if($this->skillExists($skillName)) { 
                 $config = $this->getSkillConfig($skillName);
                 Skill::getInstance($skillName, array_merge_recursive($this->_config, $config));
-                if(strlen($postData) > 1) {
-                    $parsedPostData = ((strlen($postData) > 1)? json_decode($postData, true): array());
-                    $user = $this->createUser($parsedPostData['session']);
+                if(!is_null($parsedPostData)) {
                     if(is_array($parsedPostData['request'])) {
                         if(strtolower($parsedPostData['request']['type']) == 'launchrequest') {
+                            $errorMessage = 'Unable to launch the skill.';
                             $intentName = 'Launch';
+                            Skill::log($user->id.' launch the skill.');
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
                                 $response = $intent->run();
                                 if(!$response) {
-                                    $response = $intent->endSessionResponse();
+                                    $response = $intent->endSessionResponse($errorMessage);
+                                    Skill::log($errorMessage);
                                 }
-
                                 echo $response->build();
                             }
                             else {
-                                //add default intent
+                                $defaultSkill->endSessionResponse($errorMessage);
+                                echo $response->build();
                             }
                         }
                         else if(strtolower($parsedPostData['request']['type']) == 'intentrequest') {
+                            $errorMessage = 'Unable to run intent, please try again later.';
                             $intentName = ucfirst($parsedPostData['request']['intent']['name']).'Intent';
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
@@ -110,36 +144,41 @@ class Router {
                                     $params[strtolower($value['name'])] = $value['value'];
                                 }
                                 if($parsedPostData['session']['new']) {//ask
+                                    Skill::log($user->id.' ask for intent "'.$intentName.'".');
                                     $response = $intent->ask($params);
                                 }
                                 else {//run
+                                    Skill::log($user->id.' run intent "'.$intentName.'".');
                                     $response = $intent->run($params);
                                 }
                                 if(!$response) {
-                                    $response = $intent->endSessionResponse();
+                                    $response = $intent->endSessionResponse($errorMessage);
+                                    Skill::log($errorMessage);
                                 }
-
                                 echo $response->build();
                             }
                             else {
-
+                                $defaultSkill->endSessionResponse($errorMessage);
+                                echo $response->build();
                             }
                         }
                         else if(strtolower($parsedPostData['request']['type']) == 'SessionEndedRequest') {
+                            $errorMessage = 'Unable to run session end intent.';
                             $intentName = 'EndSession';
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
                                 $response = $intent->run();
                                 if(!$response) {
                                     $response = $intent->endSessionResponse();
+                                    Skill::log($errorMessage);
                                 }
-
                                 echo $response->build();
                             }
                             else {
-                                //add default intent
+                                $defaultSkill->endSessionResponse();
+                                echo $response->build();
                             }
-                            //log
+                            Skill::log($user->id.' session end.');
                         }
                     }
                     return true;
@@ -148,17 +187,23 @@ class Router {
                     if(isset($config['allowedContentTypes'])) {
                         if(preg_match("/.+?\\.(".$config['allowedContentTypes'].")/", $skillParams[0])) {
                             $filePath = $config['directories']['content'].'/'.$skillParams[0];
+                            Skill::log($user->id.' request for '.$skillParams[0].'.');
                             return $this->readFile($filePath);
                         }
                     }
+                    Skill::log($user->id.' request for not allowed content: '.$skillParams[0].'.');
                 }
             }
             else {
+                Skill::getInstance($skillName, $this->_config);
+                Skill::log('Skill "'.$skillName.'" was not found.');
                 $this->notFound();
                 return false;
             }
         }
         else {
+            Skill::getInstance('----EMPTY_PATH-----', $this->_config);
+            Skill::log('Empty path.');
             $this->notFound();
             return false;
         }

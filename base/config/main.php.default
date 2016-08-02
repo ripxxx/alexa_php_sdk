@@ -1,11 +1,16 @@
 <?php
+/**
+ * Created by Aleksandr Berdnikov.
+ * Copyright 2016 Onix-Systems.
+*/
 
 return [
     'directories' => [
         'base' => __DIR__.'/../',
         'config' => __DIR__,
-        'skills' => __DIR__.'/../../../alexa_skills/',
-        'users' => '/Users/alexanderberdnikov/htdocs/users/',
+        'skills' => __DIR__.'/../../skills/',
+        'templates' => __DIR__.'/../../templates/',
+        'users' => '/../../../users/',
     ]
 ];
 

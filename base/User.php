@@ -1,4 +1,14 @@
 <?php
+/**
+ * Created by Aleksandr Berdnikov.
+ * Copyright 2016 Onix-Systems.
+*/
+
+namespace AlexaPHPSDK;
+
+use ArrayAccess;
+use Countable;
+
 
 class User implements ArrayAccess, Countable {
     protected static $instance;
@@ -51,6 +61,9 @@ class User implements ArrayAccess, Countable {
         if(($name == 'session') && isset($this->data[$this->currentSessionId])) {
             $data = $this->data[$this->currentSessionId];
             return $data;
+        }
+        else if($name == 'id') {
+            return $this->id;
         }
         return NULL;
     }

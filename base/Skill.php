@@ -1,4 +1,13 @@
 <?php
+/**
+ * Created by Aleksandr Berdnikov.
+ * Copyright 2016 Onix-Systems.
+*/
+
+namespace AlexaPHPSDK;
+
+use ArrayAccess;
+use Countable;
 
 class Skill implements ArrayAccess, Countable {
     private static $instance;
@@ -72,6 +81,17 @@ class Skill implements ArrayAccess, Countable {
                 return self::$instance;
             }
         }
+    }
+    
+    public static function log($message) {
+        if(self::$instance) {
+            $logDirectory = self::$instance['directories']['log'];
+            if((strlen($logDirectory) > 0) && file_exists($logDirectory) && is_dir($logDirectory) && is_writable($logDirectory)) {
+                $logFilePath = $logDirectory.strtolower(self::$instance->name.'.log');
+                return error_log(trim($message, "\n")."\n", 3, $logFilePath);
+            }
+        }
+        return false;
     }
 }
 
