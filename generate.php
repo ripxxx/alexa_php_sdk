@@ -127,21 +127,34 @@ function generateSkill($skillName) {
             return "Skill directory is not writable.\n";
         }
         echo "Creating assets directory...\n";
-        mkdir($skillDirectory.'/assets/');
-        if(file_exists($skillDirectory) && is_dir($skillDirectory)) {
-            if(!is_writable($skillDirectory)) {
+        $assetsDirectory = $skillDirectory.'/assets/';
+        mkdir($assetsDirectory);
+        if(file_exists($assetsDirectory) && is_dir($assetsDirectory)) {
+            if(!is_writable($assetsDirectory)) {
                 return "Assets directory is not writable.\n";
             }
         }
-        file_put_contents($skillDirectory.'/assets/.info', "Put your intents schema here.");
+        file_put_contents($assetsDirectory.'.info', "Put your intents schema here.");
         echo "Creating content directory...\n";
-        mkdir($skillDirectory.'/content/');
-        if(file_exists($skillDirectory) && is_dir($skillDirectory)) {
-            if(!is_writable($skillDirectory)) {
+        $contentDirectory = $skillDirectory.'/content/';
+        mkdir($contentDirectory);
+        if(file_exists($contentDirectory) && is_dir($contentDirectory)) {
+            if(!is_writable($contentDirectory)) {
                 return "Content directory is not writable.\n";
             }
         }
-        file_put_contents($skillDirectory.'/content/.info', "Put your content here.");
+        file_put_contents($contentDirectory.'.info', "Put your content here.");
+        echo "Creating private directory...\n";
+        $privateDirectory = $skillDirectory.'/private/';
+        mkdir($privateDirectory);
+        if(file_exists($privateDirectory) && is_dir($privateDirectory)) {
+            if(!is_writable($privateDirectory)) {
+                return "Private directory is not writable.\n";
+            }
+        }
+        file_put_contents($privateDirectory.'.info', "private files");
+        echo "Creating gitignore file...\n";
+        file_put_contents('.gitignore', "/private/*\n!/private/.info");
         echo "Creating config file...\n";
         file_put_contents($skillDirectory.'/config.php', "<?php
 return [
