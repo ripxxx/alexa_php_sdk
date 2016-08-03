@@ -12,6 +12,7 @@ class Response {
     protected $audioCounter = 0;
     protected $description = '';
     protected $imageUrl = '';
+    protected $needAccountLinking = false;
     protected $repromprtMessage = '';
     protected $shouldEndSession;
     protected $smallImageUrl = '';
@@ -34,6 +35,17 @@ class Response {
             return true;
         }
         return false;
+    }
+    
+    public function forceAcccountLinking($text = '', $needAccountLinking = true) {
+        $this->speach = array(
+            array(
+                'content' => ((empty($text))? 'Please use Alexa app to link your Amazon account with Skill service.': $text),
+                'type' => 'text'
+            )
+        );
+        $this->shouldEndSession = true;
+        $this->needAccountLinking = $needAccountLinking;
     }
     
     public function forceSessionEnd($shouldEndSession = true) {
@@ -118,19 +130,25 @@ class Response {
         if(!empty($this->description) || !empty($this->imageUrl) || !empty($this->smallImageUrl)) {
             $image = '';
             $type = 'Simple';
-            if(!empty($this->imageUrl) || !empty($this->smallImageUrl)) {
-                $type = 'Standard';
-                $imageUrl = $this->imageUrl;
-                empty($imageUrl) && $imageUrl = $this->smallImageUrl;
-                $smallImageUrl = $this->smallImageUrl;
-                empty($smallImageUrl) && $smallImageUrl = $imageUrl;
-                $image = '"image" : {"smallImageUrl" : "'.$smallImageUrl.'", "largeImageUrl" : "'.$imageUrl.'"}';
-            }//$type = 'LinkAccount';
-            $description = $this->description;
-            $title = $this->title;
-            empty($title) && $title = $skill->name;
-            empty($description) && $description = $title;
-            $card = '"card" : {"type" : "'.$type.'", "title" : "'.$title.'", '.(($type == 'Standard')? '"text"': '"content"').' : "'.$description.'"'.((strlen($image) > 0)? ', '.$image: '').'}';//need escape for title & description
+            if($this->needAccountLinking) {
+                $type = 'LinkAccount';
+                $card = '"card" : {"type" : "'.$type.'"}';
+            }
+            else {
+                if(!empty($this->imageUrl) || !empty($this->smallImageUrl)) {
+                   $type = 'Standard';
+                   $imageUrl = $this->imageUrl;
+                   empty($imageUrl) && $imageUrl = $this->smallImageUrl;
+                   $smallImageUrl = $this->smallImageUrl;
+                   empty($smallImageUrl) && $smallImageUrl = $imageUrl;
+                   $image = '"image" : {"smallImageUrl" : "'.$smallImageUrl.'", "largeImageUrl" : "'.$imageUrl.'"}';
+               }
+               $description = $this->description;
+               $title = $this->title;
+               empty($title) && $title = $skill->name;
+               empty($description) && $description = $title;
+               $card = '"card" : {"type" : "'.$type.'", "title" : "'.$title.'", '.(($type == 'Simple')? '"content"': '"text"').' : "'.$description.'"'.((strlen($image) > 0)? ', '.$image: '').'}';//need escape for title & description
+            }
         }
         
         $session = $user->session;

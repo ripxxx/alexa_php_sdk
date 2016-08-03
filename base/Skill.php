@@ -24,6 +24,9 @@ class Skill implements ArrayAccess, Countable {
         if($name == 'name') {
             return $this->name;
         }
+        else if($name == 'needAuthorization') {
+            return isset($this['authorization']);
+        }
         return NULL;
     }
 

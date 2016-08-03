@@ -7,15 +7,15 @@
 namespace AlexaPHPSDK;
 
 class Intent {
-    private $_user;
+    private $user;
     
     public function __construct(User $user) {
-        $_user = $user;
+        $this->user = $user;
     }
     
     public function __get($name) {
         if($name == 'user') {
-            return $_user;
+            return $this->user;
         }
         return NULL;
     }

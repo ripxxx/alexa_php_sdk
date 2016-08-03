@@ -13,6 +13,7 @@ use Countable;
 class User implements ArrayAccess, Countable {
     protected static $instance;
     
+    protected $accessToken = NULL;
     protected $currentApplicationId;
     protected $currentSessionId;
     protected $data;
@@ -65,9 +66,18 @@ class User implements ArrayAccess, Countable {
         else if($name == 'id') {
             return $this->id;
         }
+        else if($name == 'token') {
+            return $this->accessToken;
+        }
         return NULL;
     }
     
+    public function __set($name, $value) {
+        if($name == 'token') {
+            $this->accessToken = $value;
+        }
+    }
+
     public function offsetExists($offset) {
         return isset($this->data[$this->currentSessionId][$offset]) || isset($this->data[$this->hash][$offset]);
     }
