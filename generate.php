@@ -27,7 +27,7 @@ else {
     echo "Please, run script from command line.\n";
 }
 
-function generateIntents($skillName, $generateLaunchIntent = true, $generateEndSessionIntent = true, $generateIntentsWithScema = true) {
+function generateIntents($skillName, $generateLaunchIntent = true, $generateEndSessionIntent = true, $generateIntentsWithSchema = true) {
     $config = require(__DIR__.'/base/config/main.php');
     $skillsDirectory = $config['directories']['skills'];
     $templatesDirectory = $config['directories']['templates'];
@@ -64,7 +64,7 @@ function generateIntents($skillName, $generateLaunchIntent = true, $generateEndS
                     }
                 }
             }
-            if($generateEndSessionIntent) {
+            if($generateIntentsWithSchema) {
                 $intentsSchemaFilePath = $skillDirectory.'assets/IntentSchema.json';
                 if(file_exists($intentsSchemaFilePath) && is_readable($intentsSchemaFilePath)) {
                     $intents = file_get_contents($intentsSchemaFilePath);
@@ -79,7 +79,7 @@ function generateIntents($skillName, $generateLaunchIntent = true, $generateEndS
                     echo "Creating intents...\n";
                     $intentTemplate = file_get_contents($templatesDirectory.'Intent.tpl.php');
                     foreach($intents['intents'] as $intent) {
-                        $intentName = $intent['intent'];
+                        $intentName = $intent['intent'].'Intent';
                         if(!file_exists($skillDirectory.$intentName.'.php')) {
                             echo "Creating {$intentName}...\n";
                             $slots = array();
