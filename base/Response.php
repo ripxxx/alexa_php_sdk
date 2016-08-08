@@ -74,7 +74,7 @@ class Response {
         return false;
     }
     
-    public function setRepromprtMessage($text) {
+    public function setRepromptMessage($text) {
         if($text != '') {
             $this->repromprtMessage = $text;
             return true;
