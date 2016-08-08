@@ -127,28 +127,26 @@ class Response {
             $ssml = '<speak>Sorry, I have no answer for your question.</speak>';
         }
         
-        if(!empty($this->description) || !empty($this->imageUrl) || !empty($this->smallImageUrl)) {
+        if($this->needAccountLinking) {
+            $type = 'LinkAccount';
+            $card = '"card" : {"type" : "'.$type.'"}';
+        }
+        else if(!empty($this->description) || !empty($this->imageUrl) || !empty($this->smallImageUrl)) {
             $image = '';
             $type = 'Simple';
-            if($this->needAccountLinking) {
-                $type = 'LinkAccount';
-                $card = '"card" : {"type" : "'.$type.'"}';
-            }
-            else {
-                if(!empty($this->imageUrl) || !empty($this->smallImageUrl)) {
-                   $type = 'Standard';
-                   $imageUrl = $this->imageUrl;
-                   empty($imageUrl) && $imageUrl = $this->smallImageUrl;
-                   $smallImageUrl = $this->smallImageUrl;
-                   empty($smallImageUrl) && $smallImageUrl = $imageUrl;
-                   $image = '"image" : {"smallImageUrl" : "'.$smallImageUrl.'", "largeImageUrl" : "'.$imageUrl.'"}';
-               }
-               $description = $this->description;
-               $title = $this->title;
-               empty($title) && $title = $skill->name;
-               empty($description) && $description = $title;
-               $card = '"card" : {"type" : "'.$type.'", "title" : "'.$title.'", '.(($type == 'Simple')? '"content"': '"text"').' : "'.$description.'"'.((strlen($image) > 0)? ', '.$image: '').'}';//need escape for title & description
-            }
+            if(!empty($this->imageUrl) || !empty($this->smallImageUrl)) {
+               $type = 'Standard';
+               $imageUrl = $this->imageUrl;
+               empty($imageUrl) && $imageUrl = $this->smallImageUrl;
+               $smallImageUrl = $this->smallImageUrl;
+               empty($smallImageUrl) && $smallImageUrl = $imageUrl;
+               $image = '"image" : {"smallImageUrl" : "'.$smallImageUrl.'", "largeImageUrl" : "'.$imageUrl.'"}';
+           }
+           $description = $this->description;
+           $title = $this->title;
+           empty($title) && $title = $skill->name;
+           empty($description) && $description = $title;
+           $card = '"card" : {"type" : "'.$type.'", "title" : "'.$title.'", '.(($type == 'Simple')? '"content"': '"text"').' : "'.$description.'"'.((strlen($image) > 0)? ', '.$image: '').'}';//need escape for title & description
         }
         
         $session = $user->session;
