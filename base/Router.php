@@ -225,7 +225,7 @@ class Router {
                                 echo $response->build();
                             }
                             else {
-                                $defaultSkill->endSessionResponse($errorMessage);
+                                $response = $defaultSkill->endSessionResponse($errorMessage);
                                 echo $response->build();
                             }
                         }
@@ -258,11 +258,11 @@ class Router {
                                 echo $response->build();
                             }
                             else {
-                                $defaultSkill->endSessionResponse($errorMessage);
+                                $response = $defaultSkill->endSessionResponse($errorMessage);
                                 echo $response->build();
                             }
                         }
-                        else if(strtolower($parsedPostData['request']['type']) == 'SessionEndedRequest') {
+                        else if(strtolower($parsedPostData['request']['type']) == 'sessionendedrequest') {
                             $errorMessage = 'Unable to run session end intent.';
                             $intentName = 'EndSession';
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
@@ -275,7 +275,7 @@ class Router {
                                 echo $response->build();
                             }
                             else {
-                                $defaultSkill->endSessionResponse();
+                                $response = $defaultSkill->endSessionResponse();
                                 echo $response->build();
                             }
                             Skill::log($user->id.' session end.');
