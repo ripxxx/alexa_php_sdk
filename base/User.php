@@ -8,6 +8,7 @@ namespace AlexaPHPSDK;
 
 use ArrayAccess;
 use Countable;
+use Exception;
 
 
 class User implements ArrayAccess, Countable {
