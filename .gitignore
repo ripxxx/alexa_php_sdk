@@ -2,3 +2,6 @@
 .idea
 
 base/config/main.php
+
+# Composer
+vendor/

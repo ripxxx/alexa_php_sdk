@@ -6,7 +6,8 @@
 
 namespace AlexaPHPSDK;
 
-require './base/config/autoload.php';
+//require './base/config/autoload.php';
+require './vendor/autoload.php';
 $mainConfig = require('./base/config/main.php');
 
 $router = new Router($mainConfig);

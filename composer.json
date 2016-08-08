@@ -1,0 +1,20 @@
+{
+    "name": "ripxxx/alexa_php_sdk",
+    "description": "Amazon Alexa SDK for PHP",
+    "license": "MIT",
+    "type": "framwork",
+    "authors": [
+        {
+            "name": "Alexander Berdnikov",
+            "email": "sasha@onix-systems.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "AlexaPHPSDK\\" : "base/"
+        }
+    }
+}
