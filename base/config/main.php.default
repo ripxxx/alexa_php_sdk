@@ -8,6 +8,7 @@ return [
     'directories' => [
         'base' => __DIR__.'/../',
         'config' => __DIR__,
+        'log' => __DIR__.'/../../log/',
         'skills' => __DIR__.'/../../skills/',
         'templates' => __DIR__.'/../../templates/',
         'users' => '/../../../users/',
