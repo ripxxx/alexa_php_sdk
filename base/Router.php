@@ -20,9 +20,12 @@ class Router {
     
     protected function checkSignature($sha1, $time) {
         $headers = getallheaders();
-        if(is_array($headers) && isset($headers['Signature']) && isset($headers['Signaturecertchainurl'])) {
-            $signature = $headers['Signature'];
-            $signatureCertChainUrl = $headers['Signaturecertchainurl'];       
+        foreach($headers as $key=>$value) {//found that somtimes receiving Signaturecertchainurl instead of SignatureCertChainUrl
+           $headers[strtolower($key)] = $value;
+        }
+        if(is_array($headers) && isset($headers['signature']) && isset($headers['signaturecertchainurl'])) {
+            $signature = $headers['signature'];
+            $signatureCertChainUrl = $headers['signaturecertchainurl'];       
             if((strlen($signature) > 1) && (strlen($signatureCertChainUrl) > 1)) {
                 $signature = base64_decode($signature);
                 $apiCert = $this->getSignatureCertificate($signatureCertChainUrl);
