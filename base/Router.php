@@ -228,7 +228,6 @@ class Router {
             'session.user.userId' => 'string',
             'request.type' => 'string',
             'request.timestamp' => 'string',
-            'request.intent.name' => 'string',
         );
         $checkedPaths = array();
         $result = true;
