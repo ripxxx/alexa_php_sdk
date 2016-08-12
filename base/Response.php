@@ -122,7 +122,7 @@ class Response {
                         $ssml.= '<audio src=\\"'.$speachPart['content'].'\\" />';
                     break;
                     default:
-                        $ssml.= $speachPart['content'];
+                        $ssml.= $speachPart['content'].' ';
                 }
             }
             //$ssml.= ((strlen($repromprtMessage) == 0)? '': $repromprtMessage);
