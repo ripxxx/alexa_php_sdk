@@ -13,6 +13,7 @@ class Response {
     protected $description = '';
     protected $imageUrl = '';
     protected $needAccountLinking = false;
+    protected $noCard = false;
     protected $repromprtMessage = '';
     protected $shouldEndSession;
     protected $smallImageUrl = '';
@@ -93,6 +94,10 @@ class Response {
         return false;
     }
     
+    public function removeCard($remove = true) {
+        $this->noCard = $remove;
+    }
+    
     public function setTitle($text) {
         if($text != '') {
             $this->title = $text;
@@ -131,7 +136,7 @@ class Response {
             $type = 'LinkAccount';
             $card = '"card" : {"type" : "'.$type.'"}';
         }
-        else if(!empty($this->description) || !empty($this->imageUrl) || !empty($this->smallImageUrl)) {
+        else if(!$this->noCard && (!empty($this->description) || !empty($this->imageUrl) || !empty($this->smallImageUrl))) {
             $image = '';
             $type = 'Simple';
             if(!empty($this->imageUrl) || !empty($this->smallImageUrl)) {
