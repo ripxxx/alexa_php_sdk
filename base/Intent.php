@@ -11,11 +11,16 @@ class Intent {
     
     public function __construct(User $user) {
         $this->user = $user;
+        $this->user->lastIntent = $this->name;
     }
     
     public function __get($name) {
         if($name == 'user') {
             return $this->user;
+        }
+        else if($name == 'name') {
+            $classNameParts = explode('\\', get_class($this));
+            return str_replace('Intent', '', array_pop($classNameParts));
         }
         return NULL;
     }
