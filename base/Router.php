@@ -8,6 +8,7 @@ namespace AlexaPHPSDK;
 
 //DEBUGS
 //define('REQUEST_TIMESTAMP_DEBUG', true);
+//define('REQUEST_SIGNATURE_DEBUG', true);
 
 define('VALID_SIGNATURE_CERTIFICATE_HOST_NAME', 's3.amazonaws.com');
 define('VALID_SIGNATURE_CERTIFICATE_URL_PATH', '/echo.api/');
@@ -19,6 +20,9 @@ class Router {
     protected $isRequestDataValidated = NULL;
     
     protected function checkSignature($sha1, $time) {
+        if(defined('REQUEST_SIGNATURE_DEBUG')) {
+            return ((REQUEST_SIGNATURE_DEBUG === true)? true: false);
+        }
         $headers = getallheaders();
         foreach($headers as $key=>$value) {//found that somtimes receiving Signaturecertchainurl instead of SignatureCertChainUrl
            $headers[strtolower($key)] = $value;
@@ -127,7 +131,7 @@ class Router {
             if(file_exists($intentClassFileName)) {
                 spl_autoload_register(function($class) {
                     $skillName = Skill::getInstance()->name;
-                    $prefix = ucfirst($skillName);
+                    $prefix = $skillName;
                     
                     $baseDirectory = $this->_config['directories']['skills'].$skillName;
                     
@@ -158,7 +162,6 @@ class Router {
                 spl_autoload_register(function($class) {
                     $skillName = Skill::getInstance()->name;
                     $prefix = ucfirst($skillName);
-                    
                     $baseDirectory = $this->_config['directories']['skills'].$skillName;
                     
                     $length = strlen($prefix);
