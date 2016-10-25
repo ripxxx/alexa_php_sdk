@@ -388,7 +388,8 @@ class Router {
                             array_unshift($skillParams, $routeName);
                         }
                         else {
-                            return $routeHandler->run($uriParams, $skillParams);
+                            $inputData = ((is_array($parsedPostData))? $parsedPostData: ((empty($postData))? NULL: $postData));
+                            return $routeHandler->run($uriParams, ($skillParams+array('input' => $inputData)));
                         }
                     } 
                 }//*/
@@ -515,6 +516,11 @@ class Router {
     
     public function notFound($message = '<h1>Not found.</h1>') {
         header('HTTP/1.0 404 Not Found');
+        echo $message;
+    }
+    
+    public function unauthorized($message = '<h1>Unauthorized.</h1>') {
+        header('HTTP/1.0 401 Unauthorized');
         echo $message;
     }
     
