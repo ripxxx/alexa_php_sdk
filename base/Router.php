@@ -204,7 +204,7 @@ class Router {
             $contentType = finfo_file($finfo, $filePath);
             finfo_close($finfo);
             header("Content-Type: ".$contentType);
-            header('Access-Control-Allow-Origin: http://ask-ifr-download.s3.amazonaws.com');
+            header('Access-Control-Allow-Origin: https://ask-ifr-download.s3.amazonaws.com');
             readfile($filePath);
             return true;
         }
@@ -430,7 +430,9 @@ class Router {
                                 $params = array();
                                 if(isset($parsedPostData['request']['intent']['slots']) && is_array($parsedPostData['request']['intent']['slots'])) {
                                     foreach($parsedPostData['request']['intent']['slots'] as $key=>$value) {
-                                        $params[strtolower($value['name'])] = $value['value'];
+                                        if(is_array($value) && array_key_exists('name', $value) && array_key_exists('value', $value)) {
+                                            $params[strtolower($value['name'])] = $value['value'];
+                                        }
                                     }
                                 }
                                 if($parsedPostData['session']['new']) {//ask
@@ -480,16 +482,16 @@ class Router {
                     if(isset($config['allowedContentTypes'])) {
                         if(preg_match("/.+?\\.(".$config['allowedContentTypes'].")/", $skillParams[0])) {
                             $filePath = $config['directories']['content'].'/'.$skillParams[0];
-                            Skill::log($user->id.' request for '.$skillParams[0].'.');
+                            Skill::log('Request for '.$skillParams[0].'.');
                             return $this->readFile($filePath);
                         }
                     }
-                    Skill::log($user->id.' request for not allowed content: '.$skillParams[0].'.');
+                    Skill::log('Request for not allowed content: '.$skillParams[0].'.');
                     $this->notFound();
                     return false;
                 }
                 else {
-                    Skill::log($user->id.' requested path was not found: '.implode('/', $skillParams).'.');
+                    Skill::log('Requested path was not found: '.implode('/', $skillParams).'.');
                     $this->notFound();
                     return false;
                 }

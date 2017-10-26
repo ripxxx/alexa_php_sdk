@@ -5,3 +5,10 @@ base/config/main.php
 
 # Composer
 vendor/
+
+nbproject
+
+*.log
+
+/private/*
+!/private/.info
