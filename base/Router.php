@@ -424,7 +424,13 @@ class Router {
                         }
                         else if(strtolower($parsedPostData['request']['type']) == 'intentrequest') {
                             $errorMessage = 'Unable to run intent, please try again later.';
-                            $intentName = ucfirst($parsedPostData['request']['intent']['name']).'Intent';
+                            $intentName = $parsedPostData['request']['intent']['name'];
+                            if(strpos($intentName, 'AMAZON.') === 0) {
+                                $intentName = ucfirst(str_replace('AMAZON.', '', $intentName));
+                            }
+                            else {
+                                $intentName = ucfirst($intentName).'Intent';
+                            }
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
                                 $params = array();
