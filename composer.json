@@ -16,5 +16,29 @@
         "psr-4": {
             "AlexaPHPSDK\\" : "base/"
         }
+    },
+    "scripts": {
+        "configure": [
+            "AlexaPHPSDK\\ComposerIntegration::configure"
+        ],
+        "create-skill": [
+            "AlexaPHPSDK\\ComposerIntegration::createSkill"
+        ],
+        "generate-intents": [
+            "AlexaPHPSDK\\ComposerIntegration::generateIntents"
+        ],
+        "post-install-cmd": [
+            "AlexaPHPSDK\\ComposerIntegration::postInstall"
+        ],
+        "post-update-cmd": [
+            "AlexaPHPSDK\\ComposerIntegration::postInstall"
+        ]
+    },
+    "extra": {
+        "scripts-description": {
+            "configure": "Creating configuration file.",
+            "create-skill": "Creating skill.",
+            "generate-intents": "Generating skill intents."
+        }
     }
 }

@@ -12,6 +12,7 @@ return [
         'skills' => __DIR__.'/../../skills/',
         'templates' => __DIR__.'/../../templates/',
         'users' => '/../../../users/',
-    ]
+    ],
+    'url' => 'https://localhost'
 ];
 
