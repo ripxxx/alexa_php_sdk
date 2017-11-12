@@ -4,6 +4,7 @@
 base/config/main.php
 
 # Composer
+composer.lock
 vendor/
 
 nbproject
