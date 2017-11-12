@@ -161,7 +161,7 @@ return [
     'directories' => [
         'content' => __DIR__.'/content',
     ],
-    'skillHttpsUrl' => 'https://www.yoursite.com/'.$skillName,
+    'skillHttpsUrl' => 'https://www.yoursite.com/$skillName',
     'allowedContentTypes' => 'jpg|jpeg|gif|mp3'
 ];");
         echo "Creating readme file...\n";
