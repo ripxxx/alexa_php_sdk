@@ -408,6 +408,7 @@ class Router {
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
                                 $response = $intent->run();
+                                $user->lastIntent = $intent->name;
                                 if(!$response) {
                                     $response = $intent->endSessionResponse($errorMessage);
                                     Skill::log($errorMessage);
@@ -449,6 +450,7 @@ class Router {
                                     Skill::log($user->id.' run intent "'.$intentName.'".');
                                     $response = $intent->run($params);
                                 }
+                                $user->lastIntent = $intent->name;
                                 if(!$response) {
                                     $response = $intent->endSessionResponse($errorMessage);
                                     Skill::log($errorMessage);
@@ -469,6 +471,7 @@ class Router {
                             $intent = $this->getSkillIntent($skillName, $intentName, $user);
                             if($intent) {
                                 $response = $intent->run();
+                                $user->lastIntent = $intent->name;
                                 if(!$response) {
                                     $response = $intent->endSessionResponse();
                                     Skill::log($errorMessage);

@@ -11,7 +11,6 @@ class Intent {
     
     public function __construct(User $user) {
         $this->user = $user;
-        $this->user->lastIntent = $this->name;
     }
     
     public function __get($name) {
