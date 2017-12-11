@@ -161,7 +161,8 @@ class Router {
             if(file_exists($handlerClassFileName)) {
                 spl_autoload_register(function($class) {
                     $skillName = Skill::getInstance()->name;
-                    $prefix = ucfirst($skillName);
+                    $prefix = $skillName;
+                    
                     $baseDirectory = $this->_config['directories']['skills'].$skillName;
                     
                     $length = strlen($prefix);
