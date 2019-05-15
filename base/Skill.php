@@ -30,7 +30,28 @@ class Skill implements ArrayAccess, Countable {
         }
         return NULL;
     }
+    
+    public function getDirectoryPath($directoryName) {
+        $directoryName = trim($directoryName, '\\/');
+        if(is_array($this['directories']) && isset($this['directories'][$directoryName])) {
+            $directoryPath = realpath($this['directories'][$directoryName]);
+            return $directoryPath;
+        }
+        return false;
+    }
 
+    public function getFileURL($fileName) {
+        $fileName = trim($fileName, '\\/');
+        $directoryPath = $this->getDirectoryPath('content');
+        if($directoryPath !== false) {
+            $filePath = realpath($directoryPath.'/'.$fileName);
+            if($filePath !== false) {
+                $fileURL = ltrim($this['skillHttpsUrl'], '/').'/content/'.$fileName;
+                return $fileURL;
+            }
+        }
+        return false;
+    }
 
     public function offsetExists($offset) {
         return (isset($this->config[$offset]) || isset($this->tmpConfig[$offset]));

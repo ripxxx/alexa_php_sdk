@@ -7,14 +7,52 @@
 namespace AlexaPHPSDK;
 
 class Intent {
-    private $user;
+    protected $applicationId;
+    protected $deviceId;
+    protected $id;
+    protected $locale;
+    protected $timestamp;
+    protected $user;
     
-    public function __construct(User $user) {
+    public function __construct(User $user, $applicationId, $requestId, $deviceId, $locale, $timestamp) {
+        $this->applicationId = $applicationId;
+        $this->deviceId = $deviceId;
+        $this->id = $requestId;
+        $this->locale = $locale;
+        $this->timestamp = strtotime($timestamp);
         $this->user = $user;
     }
     
     public function __get($name) {
-        if($name == 'user') {
+        if($name == 'applicationId') {
+            return $this->applicationId;
+        }
+        else if($name == 'deviceId') {
+            return $this->deviceId;
+        }
+        else if($name == 'id') {
+            return $this->id;
+        }
+        else if($name == 'locale') {
+            return $this->locale;
+        }
+        else if($name == 'progressiveResponse') {
+            if(ProgressiveResponse::$enabled) {
+                return new ProgressiveResponse($this->id, Context::getInstance()->apiEndpoint, Context::getInstance()->apiAccessToken);
+            }
+        }
+        else if($name == 'reminder') {
+            if(Reminder::$enabled) {
+                return new Reminder($this->id, Context::getInstance()->apiEndpoint, Context::getInstance()->apiAccessToken);
+            }
+        }
+        else if($name == 'response') {
+            return new Response(false);
+        }
+        else if($name == 'timestamp') {
+            return $this->timestamp;
+        }
+        else if($name == 'user') {
             return $this->user;
         }
         else if($name == 'name') {

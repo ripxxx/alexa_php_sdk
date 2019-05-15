@@ -17,7 +17,6 @@ define('SIGNATURE_CERTIFICATE_SAN', 'echo-api.amazon.com');
 class Router {
     
     protected $_config;
-    protected $isRequestDataValidated = NULL;
     
     protected function checkSignature($sha1, $time) {
         if(defined('REQUEST_SIGNATURE_DEBUG')) {
@@ -71,22 +70,80 @@ class Router {
         return false;
     }
     
+    protected function createContext(array $requestData) {
+        $data = $requestData['context'];
+        
+        //AudioPlayer state
+        if(isset($data['AudioPlayer']) && is_array($data['AudioPlayer'])) {
+            isset($data['AudioPlayer']['playerActivity']) && AudioPlayer::$activity = strtoupper($data['AudioPlayer']['playerActivity']);
+            isset($data['AudioPlayer']['token']) && AudioPlayer::$token = $data['AudioPlayer']['token'];
+            isset($data['AudioPlayer']['offsetInMilliseconds']) && AudioPlayer::$offset = intval($data['AudioPlayer']['offsetInMilliseconds']);
+        }
+        //Display state
+        if(isset($data['Display']) && is_array($data['Display'])) {
+            isset($data['Display']['token']) && Display::$token = $data['Display']['token'];
+        }
+        
+        //Setting up API access
+        $apiAccessToken = null;
+        $apiEndpoint = null;
+        if(isset($data['System']['apiAccessToken']) && isset($data['System']['apiEndpoint'])) {
+            $apiAccessToken = $data['System']['apiAccessToken'];
+            $apiEndpoint = $data['System']['apiEndpoint'];
+        }
+        
+        $supportedInterfaces = [];
+        if(isset($data['System']['device']['supportedInterfaces']) && is_array($data['System']['device']['supportedInterfaces'])) {
+            $supportedInterfaces = $data['System']['device']['supportedInterfaces'];
+        }
+        
+        return Context::getInstance($data['System']['application']['applicationId'], $data['System']['device']['deviceId'], $data['System']['user']['userId'], $apiAccessToken, $apiEndpoint, $supportedInterfaces);
+    }
+    
     protected function createUser(array $requestData) {
-        if($this->validateRequestData($requestData)) {
-            $data = $requestData['session'];
-            $applicationId = $data['application']['applicationId'];
-            $id = $data['user']['userId'];
-            $sessionId = $data['sessionId'];
-            $user = User::getInstance($id, $this->_config['directories']['users'], $applicationId, $sessionId);
-            if(isset($data['user']['accessToken'])) {
-                $user->token = $data['user']['accessToken'];
+        $data = $requestData['session'];
+        $applicationId = $data['application']['applicationId'];
+        $id = $data['user']['userId'];
+        $sessionId = $data['sessionId'];
+        $consentToken = ((isset($data['user']['permissions']) && isset($data['user']['permissions']['consentToken']))? $data['user']['permissions']['consentToken'] : NULL);
+        $user = User::getInstance($id, $this->_config['directories']['users'], $applicationId, $sessionId, $consentToken);
+        if(isset($data['user']['accessToken'])) {
+            $user->token = $data['user']['accessToken'];
+        }
+        if(isset($data['attributes']) && is_array($data['attributes']) && (count($data['attributes']) > 0)) {
+            foreach($data['attributes'] as $key=>$value) {
+                $user[$key] = $value;
             }
-            if(isset($data['attributes']) && is_array($data['attributes']) && (count($data['attributes']) > 0)) {
-                foreach($data['attributes'] as $key=>$value) {
-                    $user[$key] = $value;
-                }
+        }
+        return $user;
+    }
+    
+    protected function getClassName($skillName, $name) {
+        if($this->skillExists($skillName)) {
+            $classFileName = $this->_config['directories']['skills'].$skillName.'/'.$name.'.php';
+            if(file_exists($classFileName)) {
+                spl_autoload_register(function($class) {
+                    $skillName = Skill::getInstance()->name;
+                    $prefix = $skillName;
+                    
+                    $baseDirectory = $this->_config['directories']['skills'].$skillName;
+                    
+                    $length = strlen($prefix);
+                    if(strncmp($prefix, $class, $length) !== 0) {
+                        return;
+                    }
+
+                    $realativeClass = substr($class, $length);
+                    $filePath = $baseDirectory.str_replace('\\', '/', $realativeClass).'.php';
+
+                    if (file_exists($filePath)) {
+                        require $filePath;
+                    }
+                });
+                require_once($classFileName);
+                $classFullName = $skillName.'\\'.$name;
+                return $classFullName;
             }
-            return $user;
         }
         return NULL;
     }
@@ -115,6 +172,14 @@ class Router {
         return $apiCert;
     }
     
+    protected function getSkillAudioPlayerController($skillName) {
+        $className = $this->getClassName($skillName, 'AudioPlayerController');
+        if(!is_null($className)) {
+            return new $className();
+        }
+        return NULL;
+    }
+    
     protected function getSkillConfig($skillName) {
         if($this->skillExists($skillName)) {
             $skillConfigFileName = $this->_config['directories']['skills'].$skillName.'/config.php';        
@@ -125,34 +190,20 @@ class Router {
         }
     }
     
-    protected function getSkillIntent($skillName, $intentName, User $user) {
-        if($this->skillExists($skillName)) {
-            $intentClassFileName = $this->_config['directories']['skills'].$skillName.'/'.$intentName.'.php';
-            if(file_exists($intentClassFileName)) {
-                spl_autoload_register(function($class) {
-                    $skillName = Skill::getInstance()->name;
-                    $prefix = $skillName;
-                    
-                    $baseDirectory = $this->_config['directories']['skills'].$skillName;
-                    
-                    $length = strlen($prefix);
-                    if(strncmp($prefix, $class, $length) !== 0) {
-                        return;
-                    }
-
-                    $realativeClass = substr($class, $length);
-                    $filePath = $baseDirectory.str_replace('\\', '/', $realativeClass).'.php';
-
-                    if (file_exists($filePath)) {
-                        require $filePath;
-                    }
-                });
-                require_once($intentClassFileName);
-                $classFullName = $skillName.'\\'.$intentName;
-                return new $classFullName($user);
-            }
-            return NULL;
+    protected function getSkillIntent($skillName, $intentName, User $user, $applicationId, $requestId, $deviceId, $locale, $timestamp) {
+        $className = $this->getClassName($skillName, $intentName);
+        if(!is_null($className)) {
+            return new $className($user, $applicationId, $requestId, $deviceId, $locale, $timestamp);
         }
+        return NULL;
+    }
+    
+    protected function getSkillMessageHandler($skillName) {
+        $className = $this->getClassName($skillName, 'MessageHandler');
+        if(!is_null($className)) {
+            return new $className();
+        }
+        return NULL;
     }
     
     protected function getSkillRouteHandler($skillName, $handlerName, array $config) {
@@ -199,6 +250,97 @@ class Router {
         return $params;
     }
     
+    protected function processEndSessionRequest(Skill $skill, Context $context, User $user, $requestId, $locale, $timestamp) {
+        $errorMessage = 'Unable to run session end intent.';
+        if(!is_null($user)) {
+            Skill::log($user->id.' session end.');
+            $intent = $this->getSkillIntent($skill->name, 'EndSession', $user, $context->applicationId, $requestId, $context->deviceId, strtoupper($locale), $timestamp);
+            if($intent) {
+                $response = $intent->run();
+                $user->lastIntent = $intent->name;
+                if(!$response) {
+                    $response = $intent->endSessionResponse();
+                    Skill::log($errorMessage);
+                }
+                return $response;
+            }
+        }
+        $response = new Response(true);
+        $response->addText($errorMessage);
+        return $response;
+    }
+    
+    protected function processIntentRequest(Skill $skill, Context $context, User $user, $intentName, $slots, $isNew, $requestId, $locale, $timestamp) {
+        $errorMessage = 'Unable to run intent, please try again later.';
+        if(!is_null($user) && ($intentName != '')) {
+            $forceAuthorization = $skill->needAuthorization && is_null($user->token);
+            if(strpos($intentName, 'AMAZON.') === 0) {
+                $intentName = ucfirst(str_replace('AMAZON.', '', $intentName));
+            }
+            else {
+                $intentName = ucfirst($intentName).'Intent';
+            }
+            $intent = $this->getSkillIntent($skill->name, $intentName, $user, $context->applicationId, $requestId, $context->deviceId, strtoupper($locale), $timestamp);
+            //$defaultIntent = new DefaultIntent($user, $context->applicationId, $requestId, $context->deviceId, strtoupper($locale), $timestamp);
+            if($intent) {
+                ProgressiveResponse::$enabled = !empty($context->apiAccessToken);
+                $params = array();
+                if(isset($slots) && is_array($slots)) {
+                    foreach($slots as $key=>$value) {
+                        if(is_array($value) && array_key_exists('name', $value) && array_key_exists('value', $value)) {
+                            $params[strtolower($value['name'])] = $value['value'];
+                        }
+                    }
+                }
+                if($isNew) {//ask
+                    Skill::log($user->id.' ask for intent "'.$intentName.'".');
+                    $response = $intent->ask($params);
+                }
+                else {//run
+                    Skill::log($user->id.' run intent "'.$intentName.'".');
+                    $response = $intent->run($params);
+                }
+                $user->lastIntent = $intent->name;
+                if(!$response) {
+                    $response = $intent->endSessionResponse($errorMessage);
+                    Skill::log($errorMessage);
+                }
+                else if($forceAuthorization) {
+                    $response->forceAcccountLinking(((isset($skill['authorizationRequestMessage']))? $skill['authorizationRequestMessage']: ''));
+                }
+                return $response;
+            }
+        }
+        $response = new Response(true);
+        $response->addText($errorMessage);
+        return $response;
+    }
+    
+    protected function processLaunchRequest(Skill $skill, Context $context, User $user, $requestId, $locale, $timestamp) {
+        $errorMessage = 'Unable to launch the skill.';
+        if(!is_null($user)) {
+            $forceAuthorization = $skill->needAuthorization && is_null($user->token);
+            Skill::log($user->id.' launch the skill.');
+            $intent = $this->getSkillIntent($skill->name, 'Launch', $user, $context->applicationId, $requestId, $context->deviceId, strtoupper($locale), $timestamp);
+            if($intent) {
+                ProgressiveResponse::$enabled = !empty($context->apiAccessToken);
+                $response = $intent->run();
+                $user->lastIntent = $intent->name;
+                if(!$response) {
+                    $response = $intent->endSessionResponse($errorMessage);
+                    Skill::log($errorMessage);
+                }
+                else if($forceAuthorization) {
+                    $response->forceAcccountLinking(((isset($skill['authorizationRequestMessage']))? $skill['authorizationRequestMessage']: ''));
+                }
+                return $response;
+            }
+        }
+        $response = new Response(true);
+        $response->addText($errorMessage);
+        return $response;
+    }
+    
     protected function readFile($filePath) {
         if(file_exists($filePath) && is_file($filePath) && is_writable($filePath)) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -219,20 +361,10 @@ class Router {
         return (file_exists($skillDir) && is_dir($skillDir));
     }
     
-    protected function validateRequestData(array $requestData, $forced = false) {
-        if(!$forced && is_bool($this->isRequestDataValidated)) {
-            return $this->isRequestDataValidated;
-        }
-        $mandatoryKeys = array(
-            'session.sessionId' => 'string',
-            'session.application.applicationId' => 'string',
-            'session.user.userId' => 'string',
-            'request.type' => 'string',
-            'request.timestamp' => 'string',
-        );
+    protected function validateRequest(array $requestData, array $fields) {
         $checkedPaths = array();
         $result = true;
-        foreach($mandatoryKeys as $key=>$type) {
+        foreach($fields as $key=>$type) {
             $data = $requestData;
             if(!in_array($key, $checkedPaths)) {
                 $pathParts = explode('.', $key);
@@ -270,7 +402,44 @@ class Router {
                 }
             }
         }
-        $this->isRequestDataValidated = $result;
+        return $result;
+    }
+    
+    protected function validateContextData(array $requestData) {
+        $mandatoryKeys = array(
+            'context.System.application.applicationId' => 'string',
+            'context.System.device.deviceId' => 'string',
+            'context.System.user.userId' => 'string'
+        );
+        $result = $this->validateRequest($requestData, $mandatoryKeys);
+        return $result;
+    }
+    
+    protected function validateContextUserData(array $requestData) {
+        $mandatoryKeys = array(
+            'context.System.user.userId' => 'string'
+        );
+        $result = $this->validateRequest($requestData, $mandatoryKeys);
+        return $result;
+    }
+    
+    protected function validateRequestData(array $requestData) {
+        $mandatoryKeys = array(
+            'request.type' => 'string',
+            'request.requestId' => 'string',
+            'request.timestamp' => 'string'
+        );
+        $result = $this->validateRequest($requestData, $mandatoryKeys);
+        return $result;
+    }
+    
+    protected function validateUserData(array $requestData) {
+        $mandatoryKeys = array(
+            'session.sessionId' => 'string',
+            'session.application.applicationId' => 'string',
+            'session.user.userId' => 'string'
+        );
+        $result = $this->validateRequest($requestData, $mandatoryKeys);
         return $result;
     }
     
@@ -322,14 +491,21 @@ class Router {
         if($path) {    
             $postData = file_get_contents("php://input");
             $parsedPostData = NULL;
+            $context = NULL;
             $user = NULL;
             $sha1 = NULL;
             if(strlen($postData) > 1) {
                 $sha1 = sha1($postData, true);
                 $parsedPostData = ((strlen($postData) > 1)? json_decode($postData, true): NULL);
                 if(is_array($parsedPostData)) {
-                    if($this->validateRequestData($parsedPostData)) {
+                    if($this->validateContextData($parsedPostData)) {
+                        $context = $this->createContext($parsedPostData);
+                    }
+                    if($this->validateUserData($parsedPostData)) {
                         $user = $this->createUser($parsedPostData);
+                    }
+                    else if($this->validateContextUserData($parsedPostData)) {
+                        
                     }
                 }
             }
@@ -337,9 +513,6 @@ class Router {
             $pathParts = explode('/', ltrim($path, '\\/'));
             $skillName = array_shift($pathParts);
             $skillParams = $pathParts;            
-
-            $defaultSkill = NULL;
-            !is_null($user) && $defaultSkill = new DefaultIntent($user);
             
             if($this->skillExists($skillName)) { 
                 $config = $this->getSkillConfig($skillName);
@@ -395,98 +568,103 @@ class Router {
                     } 
                 }//*/
 
-                if(!is_null($parsedPostData)) {
-                    if($this->validateRequestData($parsedPostData)) {
-                        if(!$this->checkSignature($sha1, $parsedPostData['request']['timestamp'])) {
-                            $this->badRequest();
-                            return false;
+                if(!is_null($parsedPostData) && $this->validateRequestData($parsedPostData)) {
+                    if(!$this->checkSignature($sha1, $parsedPostData['request']['timestamp'])) {
+                        $this->badRequest();
+                        return false;
+                    }
+                    
+                    $requestId = $parsedPostData['request']['requestId'];
+                    $requestLocale = ((isset($parsedPostData['request']['locale']))? $parsedPostData['request']['locale']: NULL);
+                    $requestTimestamp = $parsedPostData['request']['timestamp'];
+                    $requestType = strtolower($parsedPostData['request']['type']);
+                    
+                    if(!is_null($context)) {
+                        $response = NULL;
+                        if($requestType == 'launchrequest') {
+                            $response = $this->processLaunchRequest($skill, $context, $user, $requestId, $requestLocale, $requestTimestamp);
                         }
-                        $forceAuthorization = $skill->needAuthorization && is_null($user->token);
-                        if(strtolower($parsedPostData['request']['type']) == 'launchrequest') {
-                            $errorMessage = 'Unable to launch the skill.';
-                            $intentName = 'Launch';
-                            Skill::log($user->id.' launch the skill.');
-                            $intent = $this->getSkillIntent($skillName, $intentName, $user);
-                            if($intent) {
-                                $response = $intent->run();
-                                $user->lastIntent = $intent->name;
-                                if(!$response) {
-                                    $response = $intent->endSessionResponse($errorMessage);
-                                    Skill::log($errorMessage);
-                                }
-                                else if($forceAuthorization) {
-                                    $response->forceAcccountLinking(((isset($skill['authorizationRequestMessage']))? $skill['authorizationRequestMessage']: ''));
-                                }
-                                echo $response->build();
+                        else if($requestType == 'intentrequest') {
+                            $isNew = false;
+                            $requestName = '';
+                            $requestSlots = [];
+                            if(isset($parsedPostData['request']['intent'])) {
+                                isset($parsedPostData['request']['intent']['name']) && $requestName = $parsedPostData['request']['intent']['name'];
+                                isset($parsedPostData['request']['intent']['slots']) && $requestSlots = $parsedPostData['request']['intent']['slots'];
                             }
-                            else {
-                                $response = $defaultSkill->endSessionResponse($errorMessage);
-                                echo $response->build();
-                            }
+                            isset($parsedPostData['session']['new']) && $isNew = $parsedPostData['session']['new'];
+                            $response = $this->processIntentRequest($skill, $context, $user, $requestName, $requestSlots, $isNew, $requestId, $requestLocale, $requestTimestamp);
                         }
-                        else if(strtolower($parsedPostData['request']['type']) == 'intentrequest') {
-                            $errorMessage = 'Unable to run intent, please try again later.';
-                            $intentName = $parsedPostData['request']['intent']['name'];
-                            if(strpos($intentName, 'AMAZON.') === 0) {
-                                $intentName = ucfirst(str_replace('AMAZON.', '', $intentName));
-                            }
-                            else {
-                                $intentName = ucfirst($intentName).'Intent';
-                            }
-                            $intent = $this->getSkillIntent($skillName, $intentName, $user);
-                            if($intent) {
-                                $params = array();
-                                if(isset($parsedPostData['request']['intent']['slots']) && is_array($parsedPostData['request']['intent']['slots'])) {
-                                    foreach($parsedPostData['request']['intent']['slots'] as $key=>$value) {
-                                        if(is_array($value) && array_key_exists('name', $value) && array_key_exists('value', $value)) {
-                                            $params[strtolower($value['name'])] = $value['value'];
-                                        }
+                        else if($requestType == 'sessionendedrequest') {
+                            $response = $this->processEndSessionRequest($skill, $context, $user, $requestId, $requestLocale, $requestTimestamp);
+                        }
+                        else if(strpos($requestType, '.') > -1) {
+                            list($requestType, $requestSubType) = explode('.', $requestType);
+                            $errorMessage = "Unable to process {$requestType}.{$requestSubType}.";
+                            if($requestType == 'audioplayer') {
+                                $audioPlayerController = $this->getSkillAudioPlayerController($skillName);
+                                if(!is_null($audioPlayerController) && ($audioPlayerController instanceof PlaybackController)) {
+                                    if($requestSubType == 'playbackfailed') {
+                                        $response = $audioPlayerController->failed(Context::getInstance()->audioPlayer);
+                                    }
+                                    else if($requestSubType == 'playbackfinished') {
+                                        $response = $audioPlayerController->finished(Context::getInstance()->audioPlayer);
+                                    }
+                                    else if($requestSubType == 'playbacknearlyfinished') {
+                                        $response = $audioPlayerController->nearlyFinished(Context::getInstance()->audioPlayer);
+                                    }
+                                    else if($requestSubType == 'playbackstopped') {
+                                        $response = $audioPlayerController->stopped(Context::getInstance()->audioPlayer);
+                                    }
+                                    else if($requestSubType == 'playbackstarted') {
+                                        $response = $audioPlayerController->started(Context::getInstance()->audioPlayer);
                                     }
                                 }
-                                if($parsedPostData['session']['new']) {//ask
-                                    Skill::log($user->id.' ask for intent "'.$intentName.'".');
-                                    $response = $intent->ask($params);
-                                }
-                                else {//run
-                                    Skill::log($user->id.' run intent "'.$intentName.'".');
-                                    $response = $intent->run($params);
-                                }
-                                $user->lastIntent = $intent->name;
-                                if(!$response) {
-                                    $response = $intent->endSessionResponse($errorMessage);
-                                    Skill::log($errorMessage);
-                                }
-                                else if($forceAuthorization) {
-                                    $response->forceAcccountLinking(((isset($skill['authorizationRequestMessage']))? $skill['authorizationRequestMessage']: ''));
-                                }
-                                echo $response->build();
                             }
-                            else {
-                                $response = $defaultSkill->endSessionResponse($errorMessage);
-                                echo $response->build();
+                            else if($requestType == 'display') {
+
+                            }
+                            else if($requestType == 'gameengine') {
+
+                            }
+                            else if($requestType == 'messaging') {
+                                $messageHandler = $this->getSkillMessageHandler($skillName);
+                                if(!is_null($messageHandler) && ($messageHandler instanceof Messaging)) {
+                                    if($requestSubType == 'messagereceived') {
+                                    
+                                    }
+                                }
+                            }
+                            else if($requestType == 'playbackcontroller') {
+                                $audioPlayerController = $this->getSkillAudioPlayerController($skillName);
+                                if(!is_null($audioPlayerController) && ($audioPlayerController instanceof PlaybackController)) {
+                                    if($requestSubType == 'nextcommandissued') {
+                                        $response = $audioPlayerController->next(Context::getInstance()->audioPlayer);
+                                    }
+                                    else if($requestSubType == 'pausecommandissued') {
+                                        $response = $audioPlayerController->pause(Context::getInstance()->audioPlayer);
+                                    }
+                                    else if($requestSubType == 'playcommandissued') {
+                                        $response = $audioPlayerController->play(Context::getInstance()->audioPlayer);
+                                    }
+                                    else if($requestSubType == 'previouscommandissued') {
+                                        $response = $audioPlayerController->previous(Context::getInstance()->audioPlayer);
+                                    }
+                                }
+                            }
+                            else if($requestType == 'systems') {
+
                             }
                         }
-                        else if(strtolower($parsedPostData['request']['type']) == 'sessionendedrequest') {
-                            $errorMessage = 'Unable to run session end intent.';
-                            $intentName = 'EndSession';
-                            $intent = $this->getSkillIntent($skillName, $intentName, $user);
-                            if($intent) {
-                                $response = $intent->run();
-                                $user->lastIntent = $intent->name;
-                                if(!$response) {
-                                    $response = $intent->endSessionResponse();
-                                    Skill::log($errorMessage);
-                                }
-                                echo $response->build();
-                            }
-                            else {
-                                $response = $defaultSkill->endSessionResponse();
-                                echo $response->build();
-                            }
-                            Skill::log($user->id.' session end.');
+                        if(is_null($response)) {
+                            $response = new Response(NULL);
                         }
+                        echo $response->build();
+                        return true;
                     }
-                    return true;
+                    else {
+                        
+                    }
                 }
                 else if((count($skillParams) > 0) && isset($skillParams[0])) {
                     if(isset($config['allowedContentTypes'])) {
@@ -501,7 +679,8 @@ class Router {
                     return false;
                 }
                 else {
-                    Skill::log('Requested path was not found: '.implode('/', $skillParams).'.');
+                    Skill::log('Failed to parse request.');
+                    //Skill::log('Requested path was not found: '.implode('/', $skillParams).'.');
                     $this->notFound();
                     return false;
                 }

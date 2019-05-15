@@ -15,6 +15,7 @@ class User implements ArrayAccess, Countable {
     protected static $instance;
     
     protected $accessToken = NULL;
+    protected $consentToken = NULL;
     protected $currentApplicationId;
     protected $currentSessionId;
     protected $data;
@@ -83,7 +84,8 @@ class User implements ArrayAccess, Countable {
         return $this->filePutContents($fileName, $content);
     }
 
-    protected function __construct($id, $path, $applicationId, $sessionId) {
+    protected function __construct($id, $path, $applicationId, $sessionId, $consentToken) {
+        $this->consentToken = $consentToken;
         $this->currentApplicationId = $applicationId;
         $this->currentSessionId = $sessionId;
         $this->id = $id;
@@ -183,7 +185,7 @@ class User implements ArrayAccess, Countable {
         return $cnt;
     }
     
-    public static function getInstance($id = NULL, $path = NULL, $applicationId = NULL, $sessionId = NULL) {
+    public static function getInstance($id = NULL, $path = NULL, $applicationId = NULL, $sessionId = NULL, $consentToken = NULL) {
         if(self::$instance) {
             return self::$instance;
         }
@@ -197,16 +199,11 @@ class User implements ArrayAccess, Countable {
                     $error = 'Directory is not writable: "'.path.'".';
                     throw new Exception($error);
                 }
-                self::$instance = new self($id, $path, $applicationId, $sessionId);
+                self::$instance = new self($id, $path, $applicationId, $sessionId, $consentToken);
                 return self::$instance;
             }
-            else if(strlen($id) == 0) {
-                $error = 'Empty user id.';
-                throw new Exception($error);
-            }
             else {
-                $error = 'Empty path to users directory.';
-                throw new Exception($error);
+                return NULL;
             }
         }
     }
